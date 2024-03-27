@@ -1,18 +1,18 @@
-#handles TLS/SSL connections
+# Handles TLS/SSL connections
 import ssl
 import socket
-#For accessing x509 certificate details
+# For accessing x509 certificate details
 from OpenSSL import crypto
-#For writing to CSV file
+# For writing to CSV file
 import csv
-#For converting datetime output to a human readable format
+# For converting datetime output to a human readable format
 from datetime import datetime
 
 urls = ["www.google.com", "www.github.com", "www.coles.com.au", "www.stepfwdit.com.au"]  
-#output file
+# Output file
 csv_file = 'tls_certificate_details.csv'
 
-#check if certificate has expired
+# Check if certificate has expired
 def has_expired(cert):
     
     if cert.has_expired():
@@ -20,7 +20,7 @@ def has_expired(cert):
     else:
         return str("No")
 
-#function returns dictionary of certificate details
+# Function returns dictionary of certificate details
 def get_tls_certificate_details(url):
     
     # Establish a secure SSL context (config for managing TLS commnications settings.)
