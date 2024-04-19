@@ -10,11 +10,11 @@ from datetime import datetime
 import pandas as pd
 from tqdm import tqdm
 
-# df = pd.read_csv('websites.csv')
-# urls = df.iloc[:, 0].tolist()
-urls = ["google.com", "github.com", "coles.com.au", "stepfwdit.com.au"]  
+df = pd.read_csv('websites.csv')
+urls = df.iloc[:, 0].tolist()
+#urls = ["google.com", "github.com", "coles.com.au", "woolworths.com.au", "deakin.edu.au", "stepfwdit.com.au"]  
 # Output file
-csv_file = 'tls_certificate_details_2.csv'
+csv_file = 'tls_certificate_details.csv'
 
 # Check if certificate has expired
 def has_expired(cert):
@@ -23,7 +23,7 @@ def has_expired(cert):
         return str("Yes")
     else:
         return str("No")
-
+    
 # Function returns dictionary of certificate details
 def get_tls_certificate_details(url):
     
@@ -48,7 +48,7 @@ def get_tls_certificate_details(url):
         # extract attributes from subject + issuer objects instead of via whole cert, to negate the need for Chained indexing to access specific attributes.
         subject = x509.get_subject() 
         issuer = x509.get_issuer() 
-        
+
         # Extract the certificate details into a dictionary
         # Key | attribute value + formatting
         details = {
@@ -58,7 +58,7 @@ def get_tls_certificate_details(url):
             'Organization': getattr(subject, 'O', ''),
             
             # get + convert serial to hex format
-            'Serial Number': format(x509.get_serial_number(), 'x'),
+            'Serial Number': (x509.get_serial_number()),
 
             # Access desired attributes from the issuer object
             'Issuer Common Name': getattr(issuer, 'CN', ''),
@@ -67,13 +67,19 @@ def get_tls_certificate_details(url):
             # Convert to datetime object and then into a human readable string
             'Valid From': datetime.strptime(x509.get_notBefore().decode('utf-8'), '%Y%m%d%H%M%SZ').strftime('%Y-%m-%d %H:%M:%S'), 
             'Valid To': datetime.strptime(x509.get_notAfter().decode('utf-8'), '%Y%m%d%H%M%SZ').strftime('%Y-%m-%d %H:%M:%S'),
-
-            'Fingerprint': x509.digest('sh a256').decode('utf-8'), 
+              
             'Version': x509.get_version(), 
-
             # Returns string based on has_expired function
-            'Expired': has_expired(x509),        
+
+            'Expired': has_expired(x509),
+
+            'Country': getattr(subject, 'C', ''),  
+              
+            'Algorithm': x509.get_signature_algorithm().decode('utf-8'),            
+
+            'Fingerprint': x509.digest('sha256').decode('utf-8'),   
         }
+
     # Handle any exceptions that occur during the connection
     except Exception as e:
         print(f"Error retrieving certificate for {url}: {e}")
@@ -89,7 +95,7 @@ def get_tls_certificate_details(url):
 with open(csv_file, mode='w', newline='') as file:
     
     # Define the column names for the CSV (aligning with dictionary keys)
-    fieldnames = ['URL', 'Common Name', 'Organization', 'Serial Number', 'Issuer Common Name', 'Issuer Organization', 'Valid From', 'Valid To', 'Fingerprint', 'Version', 'Expired']
+    fieldnames = ['URL', 'Common Name', 'Organization', 'Serial Number', 'Issuer Common Name', 'Issuer Organization', 'Valid From', 'Valid To', 'Fingerprint', 'Version', 'Expired', 'Algorithm', 'Country']
     
     # Create a CSV DictWriter object, which maps the dictionaries onto the rows in the CSV'
     #fieldnames = list of keys
@@ -97,7 +103,7 @@ with open(csv_file, mode='w', newline='') as file:
     
     # Write the column names as the header row in the CSV
     writer.writeheader()
-
+    detail_count = 1
     # Iterate over each URL in the list
     for url in urls:
         # Use the previously defined function to get certificate details for the URL
@@ -107,5 +113,7 @@ with open(csv_file, mode='w', newline='') as file:
         if details:
             # Write the details as a new row in the CSV, prefixing with the URL
             writer.writerow({'URL': url, **details})
+            print(f"[{detail_count}] TLS certificate details for {url} have been saved to {csv_file}")
+            detail_count += 1
 
 print(f"TLS certificate details have been saved to {csv_file}")
